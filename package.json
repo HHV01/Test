@@ -1,0 +1,19 @@
+{
+  "name": "bee1050-quiz",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "test": "playwright test"
+  },
+  "dependencies": {
+    "lucide": "^0.468.0"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "vite": "^6.0.0"
+  }
+}
