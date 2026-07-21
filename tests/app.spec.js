@@ -24,7 +24,10 @@ test("switches to SAP subject and keeps its modules separate", async ({ page }) 
   await page.locator("[data-subject='sap']").click();
 
   await expect(page.getByText("SAP S/4HANA", { exact: true }).first()).toBeVisible();
-  await expect(page.getByText("48", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText("100", { exact: true }).first()).toBeVisible();
+  await page.getByRole("button", { name: /Làm đề 100 câu/ }).click();
+  await expect(page.getByText("Câu 1 / 100", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: /Thoát/ }).click();
   await page.getByRole("button", { name: "Ôn theo chương" }).first().click();
   await expect(page.getByRole("heading", { name: "Chọn module để bắt đầu" })).toBeVisible();
   await expect(page.locator("[data-chapter]")).toHaveCount(4);

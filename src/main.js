@@ -176,7 +176,7 @@ function renderHome() {
       <h1>${activeSubject.title}<br><em>${activeSubject.subtitle}</em></h1>
       <p>${activeSubject.description} Toàn bộ ${chapters.length} ${state.subject === "sap" ? "module" : "chương"} đã được chuyển thành thẻ kiến thức và ${totalQuestions} câu hỏi có giải thích.</p>
       <div class="hero-actions">
-        <button class="btn primary" data-start="exam">${icon("Brain")} Làm đề 20 câu</button>
+        <button class="btn primary" data-start="exam">${icon("Brain")} Làm đề ${state.subject === "sap" ? "100" : "20"} câu</button>
         <button class="btn secondary" data-view="chapters">${icon("BookOpen")} Ôn theo chương</button>
       </div>
       ${state.subject === "sap"
@@ -269,7 +269,7 @@ function renderPractice() {
   shell(`
     <div class="page-title"><div><span>LUYỆN TRẮC NGHIỆM</span><h1>Chọn một chế độ luyện</h1><p>Đáp án và giải thích từng lựa chọn xuất hiện ngay sau khi trả lời.</p></div></div>
     <div class="mode-grid">
-      <article class="mode-card featured"><span>${icon("Trophy", 26)}</span><small>ĐỀ MÔ PHỎNG</small><h2>20 câu hỗn hợp</h2><p>Đủ ${chapters.length} ${state.subject === "sap" ? "module" : "chương"}, mức độ từ nhận biết đến vận dụng.</p><button class="btn primary" data-start="exam">Bắt đầu làm đề</button></article>
+      <article class="mode-card featured"><span>${icon("Trophy", 26)}</span><small>ĐỀ MÔ PHỎNG</small><h2>${state.subject === "sap" ? "100" : "20"} câu hỗn hợp</h2><p>Đủ ${chapters.length} ${state.subject === "sap" ? "module" : "chương"}, mức độ từ nhận biết đến vận dụng.</p><button class="btn primary" data-start="exam">Bắt đầu làm đề</button></article>
       <article class="mode-card"><span>${icon("Clock3", 26)}</span><small>LUYỆN NHANH</small><h2>10 câu · 8 phút</h2><p>Một phiên ngắn để duy trì nhịp ôn mỗi ngày.</p><button class="btn secondary" data-start="quick">Luyện ngay</button></article>
       <article class="mode-card"><span>${icon("RotateCcw", 26)}</span><small>CÂU ĐÃ GẶP</small><h2>Ôn lại thông minh</h2><p>Làm một bộ câu ngẫu nhiên từ toàn ngân hàng.</p><button class="btn secondary" data-start="review">Ôn lại 15 câu</button></article>
     </div>
@@ -397,7 +397,7 @@ function bindCardsAndStart() {
     state.view = "chapters"; state.chapter = +el.dataset.chapter; render();
   });
   document.querySelectorAll("[data-start]").forEach((el) => el.onclick = () => {
-    const amounts = { exam: 20, quick: 10, review: 15 };
+    const amounts = { exam: state.subject === "sap" ? 100 : 20, quick: 10, review: 15 };
     startQuiz(questions, amounts[el.dataset.start]);
   });
   document.querySelectorAll("[data-start-chapter]").forEach((el) => el.onclick = () =>
