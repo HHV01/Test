@@ -4,7 +4,7 @@ import {
   ListChecks, Menu, RotateCcw, Search, Sparkles, Target, Trophy, X
 } from "lucide";
 import { chapters as economicsChapters, questions as economicsQuestions, totalQuestions as economicsTotal } from "./data.js";
-import { sapChapters, sapQuestions, sapTotalQuestions } from "./sap-data.js";
+import { sapChapters, sapGuides, sapQuestions, sapTotalQuestions } from "./sap-data.js";
 import "./styles.css";
 
 const icons = {
@@ -229,16 +229,29 @@ function renderChapters() {
 
 function renderChapter() {
   const ch = chapters.find((x) => x.id === state.chapter);
+  const guide = state.subject === "sap" ? sapGuides[ch.id] : null;
   shell(`
     <button class="back" data-back>${icon("ChevronLeft")} Tất cả chương</button>
     <section class="chapter-hero" style="--accent:${ch.color}">
       <div><span>CHƯƠNG ${ch.id} · ${ch.short.toUpperCase()}</span><h1>${ch.title}</h1><p>${ch.intro}</p></div>
       <button class="btn light" data-start-chapter="${ch.id}">${icon("Brain")} Luyện chương này</button>
     </section>
+    ${guide ? `<section class="beginner-guide" style="--accent:${ch.color}">
+      <div class="guide-heading"><span>${icon("Sparkles", 20)}</span><div><small>BẮT ĐẦU TỪ SỐ 0</small><h2>${guide.question}</h2></div></div>
+      <div class="guide-columns">
+        <div><h3>Hiểu đơn giản</h3><p>${guide.overview}</p></div>
+        <div class="scenario-box"><h3>Ví dụ xuyên suốt</h3><p>${guide.scenario}</p></div>
+      </div>
+      <div class="process-flow">${guide.flow.map((step, index) => `<div><span>${index + 1}</span><b>${step}</b></div>${index < guide.flow.length - 1 ? icon("ChevronRight", 15) : ""}`).join("")}</div>
+      <div class="glossary"><h3>Từ vựng cho người mới</h3><div>${guide.glossary.map(([term, meaning]) => `<article><b>${term}</b><p>${meaning}</p></article>`).join("")}</div></div>
+    </section>` : ""}
     <div class="study-layout">
       <section class="study-main">
         <div class="content-card"><h2>${icon("BookOpen")} Nội dung cần nhớ</h2>
-          ${ch.facts.map((f, i) => `<details ${i < 3 ? "open" : ""}><summary><span>${String(i + 1).padStart(2, "0")}</span>${f.label}${icon("ChevronRight")}</summary><div><b>${f.answer}</b><p>${f.note}</p></div></details>`).join("")}
+          ${ch.facts.map((f, i) => `<details ${i < 3 ? "open" : ""}><summary><span>${String(i + 1).padStart(2, "0")}</span>${f.label}${icon("ChevronRight")}</summary><div class="fact-detail">
+            <div class="fact-core"><small>Ý CHÍNH</small><b>${f.answer}</b><p>${f.note}</p></div>
+            ${f.example ? `<div class="example-box"><small>VÍ DỤ DỄ HIỂU</small><p>${f.example}</p></div>` : ""}
+          </div></details>`).join("")}
         </div>
       </section>
       <aside class="study-side">
@@ -368,9 +381,9 @@ function renderFormulas() {
 function renderChecklist() {
   const allFacts = chapters.flatMap((ch) => ch.facts.map((f, i) => ({ ...f, id: `${ch.id}-${i}`, chapter: ch })));
   shell(`
-    <div class="page-title"><div><span>CHECKLIST TRƯỚC KHI THI</span><h1>${state.checked.length}/${allFacts.length} mục đã vững</h1><p>Đánh dấu khi bạn có thể tự giải thích khái niệm mà không nhìn tài liệu.</p></div></div>
+    <div class="page-title"><div><span>CHECKLIST TRƯỚC KHI THI</span><h1>${state.checked.length}/${allFacts.length} mục đã vững</h1><p>${state.subject === "sap" ? "Chỉ đánh dấu khi bạn hiểu ý nghĩa, kể được ví dụ và biết khái niệm nằm ở bước nào trong quy trình." : "Đánh dấu khi bạn có thể tự giải thích khái niệm mà không nhìn tài liệu."}</p></div></div>
     <div class="check-progress"><span style="width:${state.checked.length / allFacts.length * 100}%"></span></div>
-    <div class="checklist">${chapters.map((ch) => `<section><h2><i style="background:${ch.color}">0${ch.id}</i>${ch.title}</h2>${allFacts.filter(x => x.chapter.id === ch.id).map((f) => `<label class="${state.checked.includes(f.id) ? "done" : ""}"><input type="checkbox" data-check="${f.id}" ${state.checked.includes(f.id) ? "checked" : ""}><span>${icon("Check")}</span><b>${f.label}</b><small>${f.answer}</small></label>`).join("")}</section>`).join("")}</div>
+    <div class="checklist">${chapters.map((ch) => `<section><h2><i style="background:${ch.color}">0${ch.id}</i>${ch.title}</h2>${allFacts.filter(x => x.chapter.id === ch.id).map((f) => `<label class="${state.checked.includes(f.id) ? "done" : ""}"><input type="checkbox" data-check="${f.id}" ${state.checked.includes(f.id) ? "checked" : ""}><span>${icon("Check")}</span><div class="check-content"><b>${f.label}</b>${f.mastery ? `<strong>Cần đạt: ${f.mastery}</strong>` : ""}<small>${f.answer}</small>${f.example ? `<em><i>Ví dụ</i>${f.example}</em>` : ""}</div></label>`).join("")}</section>`).join("")}</div>
   `);
   document.querySelectorAll("[data-check]").forEach((box) => box.onchange = () => {
     state.checked = box.checked ? [...state.checked, box.dataset.check] : state.checked.filter((x) => x !== box.dataset.check);

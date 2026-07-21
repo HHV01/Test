@@ -31,6 +31,9 @@ test("switches to SAP subject and keeps its modules separate", async ({ page }) 
 
   await page.locator("[data-chapter='3']").click();
   await expect(page.getByRole("heading", { name: "Sales and Distribution — Order to Cash" })).toBeVisible();
+  await expect(page.locator(".beginner-guide")).toBeVisible();
+  await expect(page.getByText("Ví dụ xuyên suốt", { exact: true })).toBeVisible();
+  await expect(page.locator(".example-box").first()).toBeVisible();
   await page.getByRole("button", { name: /Luyện chương này/ }).click();
   await page.locator("[data-answer='0']").click();
   await expect(page.locator(".explanation")).toBeVisible();
