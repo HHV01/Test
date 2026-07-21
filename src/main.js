@@ -3,7 +3,8 @@ import {
   CircleHelp, Clock3, Flame, Gauge, GraduationCap, House, Layers3,
   ListChecks, Menu, RotateCcw, Search, Sparkles, Target, Trophy, X
 } from "lucide";
-import { chapters, questions, totalQuestions } from "./data.js";
+import { chapters as economicsChapters, questions as economicsQuestions, totalQuestions as economicsTotal } from "./data.js";
+import { sapChapters, sapQuestions, sapTotalQuestions } from "./sap-data.js";
 import "./styles.css";
 
 const icons = {
@@ -12,15 +13,39 @@ const icons = {
   ListChecks, Menu, RotateCcw, Search, Sparkles, Target, Trophy, X
 };
 
-const saved = JSON.parse(localStorage.getItem("bee1050-progress") || "{}");
+const legacySaved = JSON.parse(localStorage.getItem("bee1050-progress") || "{}");
+const saved = JSON.parse(localStorage.getItem("study-hub-progress") || "{}");
+const subjectCatalog = {
+  economics: {
+    id: "economics", mark: "B", code: "BEE1050", name: "Kinh tế học",
+    eyebrow: "LỘ TRÌNH ÔN TẬP BEE1050", title: "Học đúng trọng tâm.", subtitle: "Vào phòng thi tự tin.",
+    description: "Đề cương kinh tế học từ nền tảng vi mô đến chính sách vĩ mô.",
+    chapters: economicsChapters, questions: economicsQuestions, total: economicsTotal, accent: "#d95f3b"
+  },
+  sap: {
+    id: "sap", mark: "S", code: "SAP S/4HANA", name: "Global Bike",
+    eyebrow: "GLOBAL BIKE CASE STUDIES", title: "Hiểu trọn quy trình.", subtitle: "Thao tác SAP chính xác.",
+    description: "Bốn case study tích hợp FI-AR, FI-AP, SD và MM trên SAP Fiori.",
+    chapters: sapChapters, questions: sapQuestions, total: sapTotalQuestions, accent: "#2d6da3"
+  }
+};
+const progress = saved.progress || {
+  economics: { checked: legacySaved.checked || [], history: legacySaved.history || [] },
+  sap: { checked: [], history: [] }
+};
+let activeSubject = subjectCatalog[saved.subject || "economics"];
+let chapters = activeSubject.chapters;
+let questions = activeSubject.questions;
+let totalQuestions = activeSubject.total;
 const state = {
   view: "home",
+  subject: activeSubject.id,
   chapter: null,
   quiz: [],
   cursor: 0,
   answers: {},
-  checked: saved.checked || [],
-  history: saved.history || [],
+  checked: progress[activeSubject.id]?.checked || [],
+  history: progress[activeSubject.id]?.history || [],
   query: ""
 };
 
@@ -40,10 +65,26 @@ const icon = (name, size = 18) => {
 const letters = ["A", "B", "C", "D"];
 
 function save() {
-  localStorage.setItem("bee1050-progress", JSON.stringify({
-    checked: state.checked,
-    history: state.history.slice(-30)
-  }));
+  progress[state.subject] = { checked: state.checked, history: state.history.slice(-30) };
+  localStorage.setItem("study-hub-progress", JSON.stringify({ subject: state.subject, progress }));
+}
+
+function switchSubject(subjectId) {
+  save();
+  activeSubject = subjectCatalog[subjectId];
+  chapters = activeSubject.chapters;
+  questions = activeSubject.questions;
+  totalQuestions = activeSubject.total;
+  state.subject = subjectId;
+  state.checked = progress[subjectId]?.checked || [];
+  state.history = progress[subjectId]?.history || [];
+  state.chapter = null;
+  state.quiz = [];
+  state.answers = {};
+  state.query = "";
+  state.view = "home";
+  save();
+  render();
 }
 
 function navItem(view, label, iconName) {
@@ -58,10 +99,11 @@ function shell(content) {
     <div class="app-shell">
       <aside class="sidebar">
         <div class="brand">
-          <div class="brand-mark">B</div>
-          <div><b>BEE1050</b><small>Kinh tế học</small></div>
+          <div class="brand-mark" style="background:${activeSubject.accent}">${activeSubject.mark}</div>
+          <div><b>${activeSubject.code}</b><small>${activeSubject.name}</small></div>
         </div>
         <nav>
+          ${navItem("subjects", "Đổi môn học", "GraduationCap")}
           ${navItem("home", "Tổng quan", "House")}
           ${navItem("chapters", "Ôn theo chương", "BookOpen")}
           ${navItem("practice", "Luyện trắc nghiệm", "Brain")}
@@ -79,7 +121,7 @@ function shell(content) {
         <header class="topbar">
           <button class="mobile-menu" aria-label="Mở menu">${icon("Menu")}</button>
           <div class="search-box">${icon("Search")}<input aria-label="Tìm nội dung" placeholder="Tìm chương, khái niệm..." value="${state.query}"></div>
-          <div class="course-pill">${icon("GraduationCap")} Ôn thi tuyển sinh thạc sĩ</div>
+          <button class="course-pill subject-button" data-view="subjects">${icon("GraduationCap")} ${activeSubject.code} · Đổi môn</button>
         </header>
         <div class="page">${content}</div>
       </main>
@@ -105,28 +147,49 @@ function bindGlobal() {
   );
 }
 
+function renderSubjects() {
+  shell(`
+    <div class="page-title subject-title"><div><span>TRUNG TÂM ÔN TẬP</span><h1>Chọn môn học</h1><p>Mỗi môn có ngân hàng câu hỏi, sổ tay và tiến độ hoàn toàn riêng biệt.</p></div></div>
+    <div class="subject-grid">
+      ${Object.values(subjectCatalog).map((subject) => {
+        const subjectProgress = progress[subject.id] || { history: [] };
+        const latest = subjectProgress.history.at(-1);
+        return `<article class="subject-card ${state.subject === subject.id ? "selected" : ""}" style="--accent:${subject.accent}" data-subject="${subject.id}">
+          <div class="subject-card-head"><span>${subject.mark}</span><i>${state.subject === subject.id ? "ĐANG HỌC" : `${subject.chapters.length} PHẦN`}</i></div>
+          <small>${subject.code}</small><h2>${subject.name}</h2><p>${subject.description}</p>
+          <div class="subject-metrics"><div><b>${subject.total}</b><span>Câu hỏi</span></div><div><b>${subject.chapters.length}</b><span>${subject.id === "sap" ? "Module" : "Chương"}</span></div><div><b>${latest ? latest.score + "%" : "—"}</b><span>Gần nhất</span></div></div>
+          <button class="btn ${state.subject === subject.id ? "dark" : "primary"}">${state.subject === subject.id ? "Tiếp tục học" : "Vào môn học"} ${icon("ChevronRight")}</button>
+        </article>`;
+      }).join("")}
+    </div>
+  `);
+  document.querySelectorAll("[data-subject]").forEach((card) => card.onclick = () => switchSubject(card.dataset.subject));
+}
+
 function renderHome() {
   const attempts = state.history.length;
   const avg = attempts ? Math.round(state.history.reduce((s, x) => s + x.score, 0) / attempts) : 0;
   const recent = state.history.at(-1);
   shell(`
     <section class="hero">
-      <div class="eyebrow">${icon("Sparkles", 16)} LỘ TRÌNH ÔN TẬP BEE1050</div>
-      <h1>Học đúng trọng tâm.<br><em>Vào phòng thi tự tin.</em></h1>
-      <p>Toàn bộ 9 chương trong đề cương đã được chuyển thành thẻ kiến thức, công thức và ${totalQuestions} câu hỏi có giải thích.</p>
+      <div class="eyebrow">${icon("Sparkles", 16)} ${activeSubject.eyebrow}</div>
+      <h1>${activeSubject.title}<br><em>${activeSubject.subtitle}</em></h1>
+      <p>${activeSubject.description} Toàn bộ ${chapters.length} ${state.subject === "sap" ? "module" : "chương"} đã được chuyển thành thẻ kiến thức và ${totalQuestions} câu hỏi có giải thích.</p>
       <div class="hero-actions">
         <button class="btn primary" data-start="exam">${icon("Brain")} Làm đề 20 câu</button>
         <button class="btn secondary" data-view="chapters">${icon("BookOpen")} Ôn theo chương</button>
       </div>
-      <div class="orbit one">Eᵈ</div><div class="orbit two">GDP</div><div class="orbit three">IS–LM</div>
+      ${state.subject === "sap"
+        ? `<div class="orbit one">FI</div><div class="orbit two">SD</div><div class="orbit three">MM</div>`
+        : `<div class="orbit one">Eᵈ</div><div class="orbit two">GDP</div><div class="orbit three">IS–LM</div>`}
     </section>
     <section class="stats-grid">
       <article><span class="stat-icon coral">${icon("Target")}</span><div><small>Ngân hàng câu hỏi</small><b>${totalQuestions}</b></div><i>câu</i></article>
-      <article><span class="stat-icon teal">${icon("BookOpen")}</span><div><small>Phạm vi đề cương</small><b>9</b></div><i>chương</i></article>
+      <article><span class="stat-icon teal">${icon("BookOpen")}</span><div><small>Phạm vi tài liệu</small><b>${chapters.length}</b></div><i>${state.subject === "sap" ? "module" : "chương"}</i></article>
       <article><span class="stat-icon gold">${icon("Gauge")}</span><div><small>Điểm trung bình</small><b>${avg}%</b></div><i>${attempts} lượt</i></article>
       <article><span class="stat-icon purple">${icon("Trophy")}</span><div><small>Lần gần nhất</small><b>${recent ? recent.score + "%" : "—"}</b></div><i>${recent ? recent.count + " câu" : "chưa thi"}</i></article>
     </section>
-    <section class="section-head"><div><span>HỌC TỪNG PHẦN</span><h2>9 chương trọng tâm</h2></div><button data-view="chapters">Xem tất cả ${icon("ChevronRight")}</button></section>
+    <section class="section-head"><div><span>HỌC TỪNG PHẦN</span><h2>${chapters.length} ${state.subject === "sap" ? "module quy trình" : "chương trọng tâm"}</h2></div><button data-view="chapters">Xem tất cả ${icon("ChevronRight")}</button></section>
     <div class="chapter-strip">
       ${chapters.slice(0, 4).map(chapterCard).join("")}
     </div>
@@ -156,8 +219,8 @@ function renderChapters() {
     `${ch.title} ${ch.short} ${ch.keywords.join(" ")}`.toLowerCase().includes(query)
   );
   shell(`
-    <div class="page-title"><div><span>ĐỀ CƯƠNG ÔN TẬP</span><h1>Chọn chương để bắt đầu</h1><p>Mỗi chương gồm tóm tắt nhanh, từ khóa, bẫy trắc nghiệm và bài luyện riêng.</p></div>
-      <div class="title-count"><b>${filtered.length}</b><small>chương phù hợp</small></div>
+    <div class="page-title"><div><span>${state.subject === "sap" ? "GLOBAL BIKE CASE STUDIES" : "ĐỀ CƯƠNG ÔN TẬP"}</span><h1>Chọn ${state.subject === "sap" ? "module" : "chương"} để bắt đầu</h1><p>Mỗi phần gồm tóm tắt nhanh, từ khóa, bẫy trắc nghiệm và bài luyện riêng.</p></div>
+      <div class="title-count"><b>${filtered.length}</b><small>phần phù hợp</small></div>
     </div>
     <div class="chapter-grid">${filtered.map(chapterCard).join("") || `<div class="empty">Không tìm thấy nội dung phù hợp với “${state.query}”.</div>`}</div>
   `);
@@ -193,7 +256,7 @@ function renderPractice() {
   shell(`
     <div class="page-title"><div><span>LUYỆN TRẮC NGHIỆM</span><h1>Chọn một chế độ luyện</h1><p>Đáp án và giải thích từng lựa chọn xuất hiện ngay sau khi trả lời.</p></div></div>
     <div class="mode-grid">
-      <article class="mode-card featured"><span>${icon("Trophy", 26)}</span><small>ĐỀ MÔ PHỎNG</small><h2>20 câu hỗn hợp</h2><p>Đủ 9 chương, mức độ từ nhận biết đến vận dụng.</p><button class="btn primary" data-start="exam">Bắt đầu làm đề</button></article>
+      <article class="mode-card featured"><span>${icon("Trophy", 26)}</span><small>ĐỀ MÔ PHỎNG</small><h2>20 câu hỗn hợp</h2><p>Đủ ${chapters.length} ${state.subject === "sap" ? "module" : "chương"}, mức độ từ nhận biết đến vận dụng.</p><button class="btn primary" data-start="exam">Bắt đầu làm đề</button></article>
       <article class="mode-card"><span>${icon("Clock3", 26)}</span><small>LUYỆN NHANH</small><h2>10 câu · 8 phút</h2><p>Một phiên ngắn để duy trì nhịp ôn mỗi ngày.</p><button class="btn secondary" data-start="quick">Luyện ngay</button></article>
       <article class="mode-card"><span>${icon("RotateCcw", 26)}</span><small>CÂU ĐÃ GẶP</small><h2>Ôn lại thông minh</h2><p>Làm một bộ câu ngẫu nhiên từ toàn ngân hàng.</p><button class="btn secondary" data-start="review">Ôn lại 15 câu</button></article>
     </div>
@@ -330,7 +393,8 @@ function bindCardsAndStart() {
 }
 
 function render() {
-  if (state.view === "home") renderHome();
+  if (state.view === "subjects") renderSubjects();
+  else if (state.view === "home") renderHome();
   else if (state.view === "chapters") renderChapters();
   else if (state.view === "practice") renderPractice();
   else if (state.view === "formulas") renderFormulas();
